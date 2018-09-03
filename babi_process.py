@@ -6,191 +6,147 @@ import os
 from collections import deque
 
 
-class babi:
-
-	def make_word_dict(self, path, filename):
-		word_dict = {}
-		rev_word_dict = {}
-		count = 0
-
-		for files in filename:
-			with open(path+files, 'r') as o:
+def data_get(data_path, data_num=1, dataset='train', memory_capacity=50): #데이터 읽어서 패딩, 단어->숫자화 진행
+	filename = list(os.walk(data_path))[0][2]
+	
+	result = []
+	for files in filename:
+		if (dataset in files) and (data_num == int(files.split('_')[0][2:])): # train or test
+			
+			with open(data_path+files, 'r') as o:	
 				for i in o:
+					if i.split()[0] == '1':
+						story = deque(maxlen=memory_capacity) # maximum 50개 문장
+
 					i = re.sub("[^a-zA-Z?, ]+", '', i).lower()[1:] #alphabet, '?', ',', ' '만 남기고 나머지 제거, 소문자화, 첫공백 제거(slicing)
-					i = re.sub("[?]+", ' ', i).split() # '?'를 ' '로 치환
-					for word in i:
-						if ',' in word:
-							word = ','.join(sorted(word.split(',')))
-						
-						if word not in word_dict:
-							word_dict[word] = count
-							rev_word_dict[count] = word
-							count += 1
 
-		word_dict['pad'] = -1
-		rev_word_dict[-1] = 'pad'
+					if '?' in i: #question 문장 만나면.	
+						i = i.split("?") 
+						question = i[0].split() # ex) ['is','bill','in','the','room']
+						answer = i[1].strip() # ex) 'no'
+						# ',' 기준으로 분할하고 정렬해서 다시 합치는 이유는 n,e e,n 처럼 같은 의미를 다르게 표현하는 경우가 있기 때문임.
+						answer = [','.join(sorted(answer.split(',')))] # ex) ['no']
 
-		return word_dict, rev_word_dict
+						sqa = [list(story.copy()), question.copy(), answer.copy()] #Story Question Answer
+						result.append(sqa)
+
+					else:
+						i = i.split() # ex) ['mary', 'is', 'in', 'the', 'school']
+						story.append(i)
+	
+	return result
 
 
 
-	def data_read_pad_numbering(self, path, filename, word_dict, memory_capacity, maximum_word_in_sentence, dataset='train'): #데이터 읽어서 패딩, 단어->숫자화 진행
-		data = []
+def get_word_dict_and_maximum_word_in_sentence(dataset):
+	word_dict = {}
+	rev_word_dict = {}
+	maximum_word_in_sentence = 0
 
-		for files in filename:
-			if dataset in files:
+	count = 0
+
+	for data in dataset: # (1번 파일 데이터 ~ 20번 파일 데이터) * 3  : train20개, valid20개, test20개.	
+		for story, question, answer in data:
 			
-				with open(path+files, 'r') as o:	
-					for i in o:
-						if i.split()[0] == '1':
-							query = deque(maxlen=memory_capacity) # maximum 50개 문장
-
-						i = re.sub("[^a-zA-Z?, ]+", '', i).lower()[1:] #alphabet, '?', ',', ' '만 남기고 나머지 제거, 소문자화, 첫공백 제거(slicing)
-
-
-						if '?' in i: #question 문장 만나면.	
-							i = i.split("?") 
-							question = i[0].split() # ex) ['is','bill','in','the','room']
-							question = [word_dict[k] for k in question] # ex) [1, 5, 2, 3, 7]		
-							question = np.pad(question, (0, maximum_word_in_sentence-len(question)), 
-										'constant', constant_values=word_dict['pad']).tolist()
-							# ex) [1, 5, 2, 3, 7, -1, -1, -1, -1, -1, -1]
-
-
-							answer = i[1].strip() # ex) 'no'
-							# ',' 기준으로 분할하고 정렬해서 다시 합치는 이유는 n,e e,n 처럼 같은 의미를 다르게 표현하는 경우가 있기 때문임.
-							answer = ','.join(sorted(answer.split(','))) # ex) 'no'
-							answer = [word_dict[answer]] # [8]
-
+			### story ###
+			for s_sentence in story:
+				maximum_word_in_sentence = max(maximum_word_in_sentence, len(s_sentence))
 				
-							query_pad = (list(query) + ( [[-1]*maximum_word_in_sentence]* (memory_capacity-len(query)) )
-										 + [question] + [answer] )
-							
-							#print(query_pad)
-							data.append(query_pad[:]) #query[:] 말고 query로 하면 주소가 넘어가서 그 후에 query가 바뀌는경우 data내부의 query도 바뀌어버림.
+				for word in s_sentence:
+					if word not in word_dict:
+						word_dict[word] = count
+						rev_word_dict[count] = word
+						count += 1
+					
 
-			
-						else:
-							i = i.split() # ex) ['mary', 'is', 'in', 'the', 'school']
-							i = [word_dict[k] for k in i] # ex) [0, 1, 2, 3, 4]
-							i = np.pad(i, (0, maximum_word_in_sentence-len(i)), 'constant', constant_values=word_dict['pad']).tolist()
-							# ex) [0, 1, 2, 3, 4, -1, -1, -1, -1, -1, -1]   ==> -1 is 'pad'
-							query.append(i)
-						
+			### question ###
+			maximum_word_in_sentence = max(maximum_word_in_sentence, len(question))			
+			for word in question:
+				if word not in word_dict:
+					word_dict[word] = count
+					rev_word_dict[count] = word
+					count += 1	
+				
 
-		return np.array(data)
+			### answer ###
+			word = answer[0]
+			if word not in word_dict:
+				word_dict[word] = count
+				rev_word_dict[count] = word
+				count += 1
 
+	word_dict['pad'] = -1
+	rev_word_dict[-1] = 'pad'
 
-
-	def split_dataset(self, train, vali_ratio):
-		np.random.shuffle(train)
-
-		vali = train[:int(len(train)*vali_ratio)]
-		train = train[int(len(train)*vali_ratio):]
+	return word_dict, rev_word_dict, maximum_word_in_sentence
 		
-		return train, vali
+
+def train_vali_split(data, vali_ratio):
+	train = []
+	vali = []
+
+	for task_data in data:
+		vali.append(task_data[:int(len(task_data)*vali_ratio)])
+		train.append(task_data[int(len(task_data)*vali_ratio):])
+
+	return train, vali
 
 
+def data_to_vector(data, word_dict, maximum_word_in_sentence, memory_capacity=50, sentence_numbering=True):
+	# sentence는 sentence number + maximum_word_in_sentence 만큼 패딩하자
+	# 첫자리에 sentence number 붙이자.
+	# 붙이는건 유효한 부분까지만.
+	# 패딩되는 memory_capacity에는 sentence number 붙이지 말자.
+	# embedding 할때는 sentence number부분만 따로 임베딩생성해서 하고, 임베딩 결과는 concat해서 쓰자.
 
-	def preprocess_and_save(self, path, savepath, memory_capacity, maximum_word_in_sentence, vali_ratio):
-		if not os.path.exists(savepath):
-			os.makedirs(savepath)
+	result = []
+	for task_data in data:
+		task = []
+		for story, question, answer in task_data:
+			sentence_number = np.arange(1, len(story)+1)
 
-		elif os.path.exists(savepath+'train.npy') and os.path.exists(savepath+'vali.npy') \
-			and os.path.exists(savepath+'test.npy') and os.path.exists(savepath+'word_dict.npy') \
-			and	os.path.exists(savepath+'rev_word_dict.npy'):
-			return None
-
-		fileinfo = list(os.walk(path))[0]
-		filename = fileinfo[2]
-
-		# numbering(word->number) 을 위해 dictionary 생성
-		word_dict, rev_word_dict = self.make_word_dict(path, filename)
-
-		# 데이터 read, pad, numbering 처리
-		train = self.data_read_pad_numbering(path, filename, word_dict, memory_capacity, maximum_word_in_sentence, dataset='train')
-		test = self.data_read_pad_numbering(path, filename, word_dict, memory_capacity, maximum_word_in_sentence, dataset='test')
-		
-		# train의 10%는 vali로 분리
-		train, vali = self.split_dataset(train, vali_ratio)
-
-		# save
-		np.save(savepath+'train', train)
-		np.save(savepath+'vali', vali)
-		np.save(savepath+'test', test)
-		np.save(savepath+'word_dict', word_dict)
-		np.save(savepath+'rev_word_dict', rev_word_dict)
-
-	def npload(self, path):
-		train = np.load(path+'train.npy')
-		vali = np.load(path+'vali.npy')
-		test = np.load(path+'test.npy')
-		word_dict = np.load(path+'word_dict.npy')
-		rev_word_dict = np.load(path+'rev_word_dict.npy')
-		return train, vali, test, word_dict, rev_word_dict
-
-
-
-	# test셋별로 따로 저장하는 코드
-	def store_testset_each_tasks(self, path, memory_capacity, maximum_word_in_sentence, dataset='test'): #데이터 읽어서 패딩, 단어->숫자화 진행
-		fileinfo = list(os.walk(path))[0]
-		filename = fileinfo[2]
-
-		# numbering(word->number) 을 위해 dictionary 생성
-		word_dict, rev_word_dict = self.make_word_dict(path, filename)
-
-		for files in filename:
-			if dataset in files:
-				data_num = files[2:].split('_')[0]
-				data = []
-
-				with open(path+files, 'r') as o:	
-					for i in o:
-						if i.split()[0] == '1':
-							query = deque(maxlen=memory_capacity) # maximum 50개 문장
-
-						i = re.sub("[^a-zA-Z?, ]+", '', i).lower()[1:] #alphabet, '?', ',', ' '만 남기고 나머지 제거, 소문자화, 첫공백 제거(slicing)
-
-
-						if '?' in i: #question 문장 만나면.	
-							i = i.split("?") 
-							question = i[0].split() # ex) ['is','bill','in','the','room']
-							question = [word_dict[k] for k in question] # ex) [1, 5, 2, 3, 7]		
-							question = np.pad(question, (0, maximum_word_in_sentence-len(question)), 
-										'constant', constant_values=word_dict['pad']).tolist()
-							# ex) [1, 5, 2, 3, 7, -1, -1, -1, -1, -1, -1]
-
-
-							answer = i[1].strip() # ex) 'no'
-							# ',' 기준으로 분할하고 정렬해서 다시 합치는 이유는 n,e e,n 처럼 같은 의미를 다르게 표현하는 경우가 있기 때문임.
-							answer = ','.join(sorted(answer.split(','))) # ex) 'no'
-							answer = [word_dict[answer]] # [8]
-
-				
-							query_pad = (list(query) + ( [[-1]*maximum_word_in_sentence]* (memory_capacity-len(query)) )
-										 + [question] + [answer] )
-							
-							#print(query_pad)
-							data.append(query_pad[:]) #query[:] 말고 query로 하면 주소가 넘어가서 그 후에 query가 바뀌는경우 data내부의 query도 바뀌어버림.
-
+			### story ###
+			s_vector = []
+			if sentence_numbering == True:
+				for number, s_sentence in enumerate(story):
+					temp = [number]
+					temp.extend( [word_dict[word] for word in s_sentence] )
+					temp.extend([-1] * ((maximum_word_in_sentence+1)-len(temp)))
+					s_vector.append(temp)
+				s_vector.extend([[-1] * (maximum_word_in_sentence+1)] * (memory_capacity-len(s_vector)) )
 			
-						else:
-							i = i.split() # ex) ['mary', 'is', 'in', 'the', 'school']
-							i = [word_dict[k] for k in i] # ex) [0, 1, 2, 3, 4]
-							i = np.pad(i, (0, maximum_word_in_sentence-len(i)), 'constant', constant_values=word_dict['pad']).tolist()
-							# ex) [0, 1, 2, 3, 4, -1, -1, -1, -1, -1, -1]   ==> -1 is 'pad'
-							query.append(i)
-				
-				if not os.path.exists('test_set_each_tasks/'+data_num):
-					os.makedirs('test_set_each_tasks/'+data_num)		
-				np.save('test_set_each_tasks/'+data_num+'/'+data_num, data)
-
-		return np.array(data)
+			else:
+				for s_sentence in story:
+					temp = []
+					temp.extend( [word_dict[word] for word in s_sentence] )
+					temp.extend([-1] * ((maximum_word_in_sentence)-len(temp)))
+					s_vector.append(temp)
+				s_vector.extend([[-1] * (maximum_word_in_sentence)] * (memory_capacity-len(s_vector)) )	
 
 
 
+			### question ###
+			q_vector = [word_dict[word] for word in question]
+			q_vector.extend([-1]* ((maximum_word_in_sentence)-len(q_vector)))
+	
+
+
+			### answer ###
+			a_vector = [word_dict[answer[0]]]
+			
+			
+			### task ###
+			task.append([s_vector, q_vector, a_vector])
+
+		### result ###
+		result.append(task)
+	
+	return result
 
 
 
-
-
+def merge_tasks(data):
+	merge = []
+	for task_data in data:
+		merge.extend(task_data)
+	return merge
