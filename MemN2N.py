@@ -48,10 +48,10 @@ class MemN2N:
 
 	def predict_using_adjacent_layer(self):
 		activation = None#tf.nn.relu 
+		print('activation function', activation)
 
 		#Position Encoding for word ordering
 		PE =  self.position_encoding_l_value() # [maximum_word_in_sentence, embedding_size]
-		#PE = tf.Variable(tf.random_normal([self.maximum_word_in_sentence, self.embedding_size], mean=0, stddev=0.1))
 		
 		#Temporal Encoding for sentence ordering	
 		#TE_variable = tf.Variable(tf.random_normal([self.memory_capacity, self.embedding_size], mean=0, stddev=0.1)) # [memory_capacity, embedding_size]

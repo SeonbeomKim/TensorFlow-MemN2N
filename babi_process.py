@@ -1,5 +1,4 @@
 #https://arxiv.org/abs/1503.08895 MemN2N
-
 import numpy as np 
 import re
 import os
@@ -57,8 +56,7 @@ def get_word_dict_and_maximum_word_in_sentence(dataset):
 					if word not in word_dict:
 						word_dict[word] = count
 						rev_word_dict[count] = word
-						count += 1
-					
+						count += 1					
 
 			### question ###
 			maximum_word_in_sentence = max(maximum_word_in_sentence, len(question))			
@@ -68,7 +66,6 @@ def get_word_dict_and_maximum_word_in_sentence(dataset):
 					rev_word_dict[count] = word
 					count += 1	
 				
-
 			### answer ###
 			word = answer[0]
 			if word not in word_dict:
@@ -94,12 +91,6 @@ def train_vali_split(data, vali_ratio):
 
 
 def data_to_vector(data, word_dict, maximum_word_in_sentence, memory_capacity=50):
-	# sentence는 sentence number + maximum_word_in_sentence 만큼 패딩하자
-	# 첫자리에 sentence number 붙이자.
-	# 붙이는건 유효한 부분까지만.
-	# 패딩되는 memory_capacity에는 sentence number 붙이지 말자.
-	# embedding 할때는 sentence number부분만 따로 임베딩생성해서 하고, 임베딩 결과는 concat해서 쓰자.
-
 	result = []
 	for task_data in data:
 		task = []
@@ -115,17 +106,12 @@ def data_to_vector(data, word_dict, maximum_word_in_sentence, memory_capacity=50
 				s_vector.append(temp)
 			s_vector.extend([[-1] * (maximum_word_in_sentence)] * (memory_capacity-len(s_vector)) )	
 
-
-
 			### question ###
 			q_vector = [word_dict[word] for word in question]
 			q_vector.extend([-1]* ((maximum_word_in_sentence)-len(q_vector)))
 	
-
-
 			### answer ###
 			a_vector = [word_dict[answer[0]]]
-			
 			
 			### task ###
 			task.append([s_vector, q_vector, a_vector])

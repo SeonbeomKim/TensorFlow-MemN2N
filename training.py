@@ -6,7 +6,6 @@ import tensorflow as tf # 1.4
 import os
 
 data_path = './tasks_1-20_v1-2.tar/tasks_1-20_v1-2/en-10k/' # version 1.2
-#data_path = './tasks_1-20_v1.tar/en/'  # version 1.0
 print("data_path", data_path)
 
 saver_path = "./saver/"
@@ -14,7 +13,7 @@ saver_path = "./saver/"
 hop = 3
 memory_capacity = 50 #논문 4.2 Training Details. The capacity of memory is restricted to the most recent 50 sentences.
 vali_ratio = 0.1 # 10% 논문 4.2
-embedding_size = 50 # joint training은 50, independent training은 20
+embedding_size = 50#50 # joint training은 50, independent training은 20
 lr = 0.01
 
 def data_read_and_preprocess(data_path, memory_capacity, vali_ratio):
@@ -147,17 +146,3 @@ sess = tf.Session()
 model = mn.MemN2N(sess, hop, maximum_word_in_sentence, len(word_dict), embedding_size, memory_capacity, lr=lr)
 
 run(model, merge_train, merge_vali, merge_test, task_test)
-'''
-np.random.shuffle(merge_test)
-batch = merge_test[0:2]
-story = toNumpy(batch[:, 0], np.int32)
-question = toNumpy(batch[:, 1], np.int32)
-answer = toNumpy(batch[:, 2], np.int64).flatten()
-
-a = sess.run(model.pred, {model.story:story, model.question:question, model.answer:answer})
-print(a,'\n')
-#print(b,'\n')
-#print(c,'\n')
-#print(d,'\n')
-
-'''
