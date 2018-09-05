@@ -23,7 +23,7 @@ TensorFlow version == 1.4
 Model A: Embedding size = 50, Adjacent, Position Encoding, Temporal Encoding  
 Model B: Embedding size = 100, Adjacent, Position Encoding, Temporal Encoding, Relu  
 
-| task | Model A | Model B |
+| Task | Model A | Model B |
 | ------------- | ------------- | ------------- |
 | 1 | 0.998 | 0.999 |
 | 2 | 0.828 | 0.756 |
