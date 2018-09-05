@@ -26,6 +26,7 @@ def data_get(data_path, data_num=1, dataset='train', memory_capacity=50): #데�
 						answer = i[1].strip() # ex) 'no'
 						# ',' 기준으로 분할하고 정렬해서 다시 합치는 이유는 n,e e,n 처럼 같은 의미를 다르게 표현하는 경우가 있기 때문임.
 						answer = [','.join(sorted(answer.split(',')))] # ex) ['no']
+						#answer = [answer]
 
 						sqa = [list(story.copy()), question.copy(), answer.copy()] #Story Question Answer
 						result.append(sqa)
@@ -92,7 +93,7 @@ def train_vali_split(data, vali_ratio):
 	return train, vali
 
 
-def data_to_vector(data, word_dict, maximum_word_in_sentence, memory_capacity=50, sentence_numbering=True):
+def data_to_vector(data, word_dict, maximum_word_in_sentence, memory_capacity=50):
 	# sentence는 sentence number + maximum_word_in_sentence 만큼 패딩하자
 	# 첫자리에 sentence number 붙이자.
 	# 붙이는건 유효한 부분까지만.
@@ -107,21 +108,12 @@ def data_to_vector(data, word_dict, maximum_word_in_sentence, memory_capacity=50
 
 			### story ###
 			s_vector = []
-			if sentence_numbering == True:
-				for number, s_sentence in enumerate(story):
-					temp = [number]
-					temp.extend( [word_dict[word] for word in s_sentence] )
-					temp.extend([-1] * ((maximum_word_in_sentence+1)-len(temp)))
-					s_vector.append(temp)
-				s_vector.extend([[-1] * (maximum_word_in_sentence+1)] * (memory_capacity-len(s_vector)) )
-			
-			else:
-				for s_sentence in story:
-					temp = []
-					temp.extend( [word_dict[word] for word in s_sentence] )
-					temp.extend([-1] * ((maximum_word_in_sentence)-len(temp)))
-					s_vector.append(temp)
-				s_vector.extend([[-1] * (maximum_word_in_sentence)] * (memory_capacity-len(s_vector)) )	
+			for s_sentence in story:
+				temp = []
+				temp.extend( [word_dict[word] for word in s_sentence] )
+				temp.extend([-1] * ((maximum_word_in_sentence)-len(temp)))
+				s_vector.append(temp)
+			s_vector.extend([[-1] * (maximum_word_in_sentence)] * (memory_capacity-len(s_vector)) )	
 
 
 
