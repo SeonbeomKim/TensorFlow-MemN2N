@@ -20,8 +20,8 @@ TensorFlow version == 1.4
     * 전처리된 babi dataset을 학습하는 코드.
     
 ## result
-Model A: Embedding size = 50, Adjacent, Position Encoding, Temporal Encoding
-Model B: Embedding size = 100, Adjacent, Position Encoding, Temporal Encoding, Relu
+Model A: Embedding size = 50, Adjacent, Position Encoding, Temporal Encoding  
+Model B: Embedding size = 100, Adjacent, Position Encoding, Temporal Encoding, Relu  
 
 | task | Model A | Model B |
 | ------------- | ------------- | ------------- |
