@@ -76,8 +76,8 @@ def validation(model, data):
 		question = toNumpy(batch[:, 1], np.int32)
 		answer = toNumpy(batch[:, 2], np.int64).flatten()
 
-		train_loss, _ = sess.run([model.cost, model.minimize], {model.story:story, model.question:question, model.answer:answer})
-		loss += train_loss
+		vali_loss = sess.run(model.cost, {model.story:story, model.question:question, model.answer:answer})
+		loss += vali_loss
 
 
 	return loss/len(data)
